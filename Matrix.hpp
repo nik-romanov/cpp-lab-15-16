@@ -175,7 +175,7 @@ public:
       vector<future<double>> futures;
 
       for (unsigned int column = 0; column < number_of_columns; column += block_size){
-			futures.push_back( async( launch::async, [&, column](){
+			futures.push_back( async( launch::async, [&, column, block_size](){
 				double block_determinant = '\0';
 				for (unsigned int column_ = column; column_ < min(column + block_size, number_of_columns); column_++)
 					block_determinant += ( (column_ % 2 == 0) ? 1 : -1) * matrix[0][column_] * Minor(0, column_).asyncDeterminant(block_size);
@@ -223,7 +223,7 @@ public:
 
       for (unsigned int row = 0; row < number_of_rows; row += block_size){
 			for (unsigned int column = 0; column < number_of_columns; column += block_size){
-				futures.push_back( async( launch::async, [&, row, column](){
+				futures.push_back( async( launch::async, [&, row, column, block_size](){
 					for (unsigned int row_ = row; row_ < min(row + block_size, number_of_rows); row_++){
 						for (unsigned int column_ = column; column_ < min(column + block_size, number_of_columns); column_++)
 							result.matrix[column_][row_] = matrix[row_][column_];
@@ -233,7 +233,7 @@ public:
 		}
 
 		for (future<void>& f : futures)
-			f.get();
+			f.wait();
 
 		return result;
    }
@@ -253,6 +253,27 @@ public:
       for (thread& thr : threads)
          thr.join();
       
+      return result;
+   }
+   Matrix<T> asyncLinear(unsigned int block_size) const {
+      Matrix result(number_of_rows, number_of_columns);
+      //vector<future<Matrix<T>>> futures;
+      vector<future<void>> futures;
+
+      for (unsigned int row = 0; row < number_of_rows; row += block_size){
+         for (unsigned int column = 0; column < number_of_columns; column += block_size){
+            futures.push_back( async( launch::async, [&, row, column, block_size](){
+               for (unsigned int row_ = row; row_ < min(row + block_size, number_of_rows); row_++){
+						for (unsigned int column_ = column; column_ < min(column + block_size, number_of_columns); column_++)
+							result.matrix[row_][column_] = ((row_ + column_) % 2 == 0 ? 1 : -1) * Minor(row_, column_).Determinant();
+               }
+            } ) );
+         }
+      }
+
+      for (future<void>& f : futures)
+         f.wait();
+
       return result;
    }
    // посчитать обратную матрицу (multithreaded)
@@ -336,7 +357,7 @@ Matrix<T> Matrix<T>::asyncMultiply(const Matrix& other, unsigned int block_size)
 
 	for (unsigned int row = 0; row < number_of_rows; row += block_size){
 		for (unsigned int column = 0; column < other.number_of_columns; column += block_size){
-			futures.push_back( async( launch::async, [&, row, column](){
+			futures.push_back( async( launch::async, [&, row, column, block_size](){
 				for (unsigned int row_ = row; row_ < min(row + block_size, number_of_rows); row_++){
 					for (unsigned int column_ = column; column_ < min(column + block_size, other.number_of_columns); column_++){
                   for (unsigned int index = 0; index < number_of_columns; index++)
@@ -348,7 +369,7 @@ Matrix<T> Matrix<T>::asyncMultiply(const Matrix& other, unsigned int block_size)
 	}
 
 	for (future<void>& f : futures)
-		f.get();
+		f.wait();
 	
    return result;
 }
@@ -379,7 +400,7 @@ Matrix<T> Matrix<T>::asyncMultiply(double number, unsigned int block_size) const
 
 	for (unsigned int row = 0; row < number_of_rows; row += block_size){
 		for (unsigned int column = 0; column < number_of_columns; column += block_size){
-			futures.push_back( async( launch::async, [&, row, column, number](){
+			futures.push_back( async( launch::async, [&, row, column, number, block_size](){
 				for (unsigned int row_ = row; row_ < min(row + block_size, this->number_of_rows); row_++){
 					for (unsigned int column_ = column; column_ < min(column + block_size, this->number_of_columns); column_++)
 						result.matrix[row_][column_] = this->matrix[row_][column_] * number;
@@ -389,7 +410,7 @@ Matrix<T> Matrix<T>::asyncMultiply(double number, unsigned int block_size) const
 	}
 
 	for (future<void>& f : futures)
-		f.get();
+		f.wait();
 	
    return result;
 }
@@ -426,7 +447,7 @@ Matrix<T> Matrix<T>::asyncAdd(const Matrix& other, unsigned int block_size) cons
 	vector<future<void>> futures;
 	for (unsigned int row = 0; row < number_of_rows; row += block_size){
 		for (unsigned int column = 0; column < number_of_columns; column += block_size){
-			futures.push_back( async( launch::async, [&, row, column](){
+			futures.push_back( async( launch::async, [&, row, column, block_size](){
 				for (unsigned int row_ = row; row_ < min(row + block_size, this->number_of_rows); row_++){
 					for (unsigned int column_ = column; column_ < min(column + block_size, this->number_of_columns); column_++)
 						result.matrix[row_][column_] = this->matrix[row_][column_] + other.matrix[row_][column_];
@@ -436,7 +457,7 @@ Matrix<T> Matrix<T>::asyncAdd(const Matrix& other, unsigned int block_size) cons
 	}
 
 	for (future<void>& f : futures)
-		f.get();
+		f.wait();
 	
    return result;
 }
@@ -473,7 +494,7 @@ Matrix<T> Matrix<T>::asyncSubtract(const Matrix& other, unsigned int block_size)
 	vector<future<void>> futures;
 	for (unsigned int row = 0; row < number_of_rows; row += block_size){
 		for (unsigned int column = 0; column < number_of_columns; column += block_size){
-			futures.push_back( async( launch::async, [&, row, column](){
+			futures.push_back( async( launch::async, [&, row, column, block_size](){
 				for (unsigned int row_ = row; row_ < min(row + block_size, this->number_of_rows); row_++){
 					for (unsigned int column_ = column; column_ < min(column + block_size, this->number_of_columns); column_++)
 						result.matrix[row_][column_] = this->matrix[row_][column_] - other.matrix[row_][column_];
@@ -483,7 +504,7 @@ Matrix<T> Matrix<T>::asyncSubtract(const Matrix& other, unsigned int block_size)
 	}
 
 	for (future<void>& f : futures)
-		f.get();
+		f.wait();
 	
    return result;
 }
