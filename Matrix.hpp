@@ -62,7 +62,7 @@ public:
       Assign(in);
    }
    // конструктор для задания матрицы со значением по умолчанию
-   Matrix(unsigned int _number_of_rows_, unsigned int _number_of_columns_, T default_value){
+   Matrix(unsigned int _number_of_rows_, unsigned int _number_of_columns_, T default_value = T()){
       number_of_rows = _number_of_rows_;
       number_of_columns = _number_of_columns_;
       Create();

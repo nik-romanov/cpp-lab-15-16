@@ -19,7 +19,7 @@ int main(){
   ifstream file("input.txt");      или    cin >> matrix;
   file >> matrix            ;
   */
-  
+  #if 0
   /*ЕДЕНИЧНАЯ И НУЛЕВАЯ МАТРИЦЫ*/
   cout << "Identity matrix: \n" << Matrix<int>::identityMatrix(4)
        << "Zero matrix: \n" << Matrix<int>::zeroMatrix(2, 5);
@@ -78,6 +78,7 @@ int main(){
      << "\n USED MATRIXES: \n\n" << "cmatrix1 \n" << cmatrix1 << "cmatrix2 \n" << cmatrix2
      << "fmatrix1 \n" << fmatrix1 << "fmatrix2 \n" << fmatrix2 << "fmatrix3 \n" << fmatrix3;
   fout.close();
-
+  #endif
+  
   return 0;
 } 
