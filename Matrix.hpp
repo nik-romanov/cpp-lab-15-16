@@ -177,14 +177,14 @@ public:
       }return result;
    }
   // транспонировать (multithreaded)
-   Matrix<T> Transponed() const{
+   Matrix<T> Transpose() const{
       Matrix result(number_of_columns, number_of_rows);
       vector<thread> threads;
 
       for(unsigned int row = 0; row < number_of_rows; row++){
          threads.emplace_back( thread( [this, &result, row](){
             for(unsigned int column = 0; column < number_of_columns; column++){
-               result.matrix[row][column] = matrix[column][row];
+               result.matrix[column][row] = matrix[row][column];
             }
          } ) );
       }
@@ -193,6 +193,26 @@ public:
          thr.join();
       
       return result;
+   }
+   Matrix<T> asyncTranspose(unsigned int block_size) const{
+      Matrix result(number_of_columns, number_of_rows);
+      vector<future<void>> futures;
+
+      for (unsigned int row = 0; row < number_of_rows; row += block_size){
+			for (unsigned int column = 0; column < number_of_columns; column += block_size){
+				futures.push_back( async( launch::async, [&, row, column](){
+					for (unsigned int row_ = row; row_ < min(row + block_size, number_of_rows); row_++){
+						for (unsigned int column_ = column; column_ < min(column + block_size, number_of_columns); column_++)
+							result.matrix[column_][row_] = matrix[row_][column_];
+					}
+				} ) );
+			}
+		}
+
+		for (future<void>& f : futures)
+			f.get();
+
+		return result;
    }
    // посчитать линейное дополнение (multithreaded)
    Matrix<T> Linear() const{
@@ -217,7 +237,7 @@ public:
       if(!(IsSquare()) || !(Determinant()))
          throw invalid_argument("\n ERROR: non-square or singular matrix has no inverse matrix \n");
       else
-         return ( Linear().Transponed() * (1 / Determinant()) );
+         return ( Linear().Transpose() * (1 / Determinant()) );
    }
    // создать еденичную матрицу заданного размера
    static Matrix<T> identityMatrix(unsigned int num){
@@ -539,7 +559,7 @@ Matrix<T> Matrix<T>::operator ! () const{
    if(!(IsSquare()) || !(Determinant()))
       throw invalid_argument("\n ERROR: non-square or singular matrix has no inverse matrix \n");
    else
-      return ( Linear().Transponed() * (1 / Determinant()) );
+      return ( Linear().Transpose() * (1 / Determinant()) );
 }
 
 #endif
