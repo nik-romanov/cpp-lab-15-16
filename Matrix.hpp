@@ -10,8 +10,6 @@
 #include <thread>
 #include <future>
 
-using namespace std;
-
 template<typename T> class Matrix;  //TODO: почему без этих двух строчек пре-объявления не работает переопределение <<
 template<typename T> std::ostream& operator << (std::ostream&, const Matrix<T>&);
 template<typename T> std::istream& operator >> (std::istream&, Matrix<T>&);
@@ -236,10 +234,16 @@ public:
    }
 
    Matrix operator * (const Matrix&) const;
+   Matrix asyncMultiply(const Matrix&, unsigned int) const;
+
    Matrix operator * (double) const;
+   Matrix asyncMultiply(double, unsigned int) const;
 
    Matrix operator + (const Matrix&) const;
+   Matrix asyncAdd(const Matrix& other, unsigned int block_size) const;
+
    Matrix operator - (const Matrix&) const;
+   Matrix asyncSubtract(const Matrix&, unsigned int) const;
 
    bool operator == (const Matrix&) const;
    bool operator != (const Matrix&) const;
@@ -281,9 +285,13 @@ Matrix<T> Matrix<T>::operator * (const Matrix& other) const
 		return result;
    }
 }
+template<typename T>
+Matrix<T> Matrix<T>::asyncMultiply(const Matrix& other, unsigned int block_size) const{
+
+}
 // матрица * скаляр (multithreaded)
 template<typename T>
-Matrix<T> Matrix<T>::operator * (const double number) const
+Matrix<T> Matrix<T>::operator * (double number) const
 {
    Matrix result(number_of_rows, number_of_columns, T());
    vector<thread> threads;
@@ -300,6 +308,10 @@ Matrix<T> Matrix<T>::operator * (const double number) const
 		thr.join();
 
 	return result;
+}
+template<typename T>
+Matrix<T> Matrix<T>::asyncMultiply(double number, unsigned int block_size) const{
+
 }
 // матрица + матрица (multithreaded)
 template<typename T>
@@ -325,6 +337,29 @@ Matrix<T> Matrix<T>::operator + (const Matrix<T>& other) const
 		return result;
    }
 }
+template<typename T>
+Matrix<T> Matrix<T>::asyncAdd(const Matrix& other, unsigned int block_size) const{
+   if (number_of_rows != other.number_of_rows || number_of_columns != other.number_of_columns)
+		throw invalid_argument("\n ERROR: Matrix are not compatible (cannot add) \n");
+
+	Matrix result(number_of_rows, number_of_columns);
+	vector<future<void>> futures;
+	for (unsigned int row = 0; row < number_of_rows; row += block_size){
+		for (unsigned int column = 0; column < number_of_columns; column += block_size){
+			futures.push_back( async( launch::async, [&, row, column](){
+				for (unsigned int row_ = row; row_ < min(row + block_size, this->number_of_rows); row_++){
+					for (unsigned int column_ = column; column_ < min(column + block_size, this->number_of_columns); column_++)
+						result.matrix[row_][column_] = this->matrix[row_][column_] + other.matrix[row_][column];
+				}
+			} ) );
+		}
+	}
+
+	for (future<void>& f : futures)
+		f.get();
+	
+   return result;
+}
 // матрица - матрица (multithreaded)
 template<typename T>
 Matrix<T> Matrix<T>::operator - (const Matrix& other) const
@@ -348,6 +383,10 @@ Matrix<T> Matrix<T>::operator - (const Matrix& other) const
 
 		return result;
    }
+}
+template<typename T>
+Matrix<T> Matrix<T>::asyncSubtract(const Matrix& other, unsigned int block_size) const{
+
 }
 // матрица == матрица
 template<typename T>
