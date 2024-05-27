@@ -165,6 +165,29 @@ public:
 
       return result;
    } 
+   double asyncDeterminant(unsigned int block_size) const{
+      if (!(IsSquare())){
+         throw invalid_argument("\n ERROR: non-square matrix has no determinant \n");
+      }if (number_of_columns == 1)
+         return matrix[0][0];
+      
+      double result = '\0';
+      vector<future<double>> futures;
+
+      for (unsigned int column = 0; column < number_of_columns; column += block_size){
+			futures.push_back( async( launch::async, [&, column](){
+				double block_determinant = '\0';
+				for (unsigned int column_ = column; column_ < min(column + block_size, number_of_columns); column_++)
+					block_determinant += ( (column_ % 2 == 0) ? 1 : -1) * matrix[0][column_] * Minor(0, column_).asyncDeterminant(block_size);
+				return block_determinant;
+			} ) );
+		}
+
+		for (future<double>& f : futures)
+			result += f.get();
+
+		return result;
+   }
    // вычислить минор 
    Matrix<T> Minor(unsigned int row_current, unsigned int column_current) const{
       Matrix result(number_of_rows - 1, number_of_columns - 1);
