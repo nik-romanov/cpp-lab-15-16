@@ -283,6 +283,12 @@ public:
       else
          return ( Linear().Transpose() * (1 / Determinant()) );
    }
+   Matrix asyncInverse(unsigned int block_size) const{
+      if(!(IsSquare()) || !(Determinant()))
+         throw invalid_argument("\n ERROR: non-square or singular matrix has no inverse matrix \n");
+      else
+         return ( asyncLinear(block_size).asyncTranspose(block_size) * (1 / asyncDeterminant(block_size)) );
+   }
    // создать еденичную матрицу заданного размера
    static Matrix<T> identityMatrix(unsigned int num){
       Matrix<T> result(num, num);
