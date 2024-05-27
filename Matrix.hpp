@@ -12,7 +12,7 @@
 
 using namespace std;
 
-template<typename T> class Matrix;  // почему без этих двух строчек пре-объявления не работает переопределение <<
+template<typename T> class Matrix;  //TODO: почему без этих двух строчек пре-объявления не работает переопределение <<
 template<typename T> std::ostream& operator << (std::ostream&, const Matrix<T>&);
 template<typename T> std::istream& operator >> (std::istream&, Matrix<T>&);
 
@@ -133,44 +133,17 @@ public:
       }
    }
 #if 0
-      double Determinant(){
-      double sum = 0;
-      if (this->IsSquare()){
-         if (number_of_rows == 1){
-            return matrix[0][0];
-         }else if (number_of_rows == 2){
-            return matrix[0][0] * matrix[1][1] - matrix[1][0] * matrix[0][1];
-         }else {
-            for (unsigned int column = 0; column < number_of_columns; column++){
-               sum += (column % 2 == 0 ? 1 : -1) * matrix[0][column] * Minor(0, column).Determinant();
-            }
-         }
-      } else {
-         cerr << "ERROR: non-square matrix has no determinant" << '\n';
-      }return sum;
-   }
-   void Twodify(const double *a){
-      unsigned int count = 0;
-      for (unsigned int i = 0; i < number_of_rows; ++i){
-         for (unsigned int j = 0; j < number_of_columns; ++j){
-            matrix[i][j] = a[count];
-            count += 1;
-         }
-      }
-   }
-   Matrix<T> Minor(unsigned int row_current, unsigned int column_current){
-      unsigned int count = 0;
-      Matrix<T> result(number_of_rows - 1, number_of_columns - 1, 0);
-      double data[result.number_of_rows * result.number_of_columns];
-      for (unsigned int i = 0; i <= result.number_of_rows; ++i){
-         for (unsigned int j = 0; j <= result.number_of_columns; ++j){
-            if (i != row_current && j != column_current){
-               data[count] = matrix[i][j];
-               count += 1;
-            }
-         }
-      }result.Twodify(data);
-      return result;
+   double Determinant_OldSchool() const{
+      if(!(this->IsSquare())){
+         throw invalid_argument("\n ERROR: non-square matrix has no determinant \n");
+      }if(this->number_of_columns == 1)
+         return this->matrix[0][0];
+
+      double result = 0;
+
+      for (unsigned int column = 0; column < this->number_of_columns; column++){
+         result += ( (column % 2 == 0) ? 1 : -1) * this->matrix[0][column] * this->Minor(0, column).Determinant_OldSchool();
+      }return result;
    }
 #endif
    // вычислить детерминант (multihreaded)
@@ -184,8 +157,8 @@ public:
       vector<thread> threads;
 
       for (unsigned int column = 0; column < number_of_columns; column++){
-         threads.push_back( thread( [this, &result, column](){
-            result += ( (column % 2 == 0) ? 1 : -1) * matrix[0][column] * this->Minor(0, column).Determinant(); 
+         threads.emplace_back( thread( [this, &result, column](){
+            result += ( (column % 2 == 0) ? 1 : -1) * matrix[0][column] * Minor(0, column).Determinant(); 
          } ) );
       }
 
@@ -194,22 +167,9 @@ public:
 
       return result;
    } 
-   
-   double Determinant_OldSchool() const{
-      if(!(this->IsSquare())){
-         throw invalid_argument("\n ERROR: non-square matrix has no determinant \n");
-      }if(this->number_of_columns == 1)
-         return this->matrix[0][0];
-
-      double result = 0;
-
-      for (unsigned int column = 0; column < this->number_of_columns; column++){
-         result += ( (column % 2 == 0) ? 1 : -1) * this->matrix[0][column] * this->Minor(0, column).Determinant0();
-      }return result;
-   }
    // вычислить минор 
    Matrix<T> Minor(unsigned int row_current, unsigned int column_current) const{
-      Matrix result(number_of_rows - 1, number_of_columns - 1, T());
+      Matrix result(number_of_rows - 1, number_of_columns - 1);
       for(unsigned int row = 0; row < number_of_rows; row++){
             if(row == row_current) continue;
             for(unsigned int column = 0; column < number_of_columns; column++){
@@ -220,15 +180,15 @@ public:
    }
   // транспонировать (multithreaded)
    Matrix<T> Transponed() const{
-      Matrix result(number_of_columns, number_of_rows, T());
+      Matrix result(number_of_columns, number_of_rows);
       vector<thread> threads;
 
       for(unsigned int row = 0; row < number_of_rows; row++){
-         threads.push_back(thread([this, &result, row](){
+         threads.emplace_back( thread( [this, &result, row](){
             for(unsigned int column = 0; column < number_of_columns; column++){
                result.matrix[row][column] = matrix[column][row];
             }
-         }));
+         } ) );
       }
          
       for(thread& thr : threads)
@@ -236,23 +196,34 @@ public:
       
       return result;
    }
+   // посчитать линейное дополнение (multithreaded)
    Matrix<T> Linear() const{
-      Matrix result(this->number_of_rows, this->number_of_columns, 0);
-      for(unsigned int row = 0; row < this->number_of_rows; row++){
-         for(unsigned int column = 0; column < this->number_of_columns; column++)
-            result.matrix[row][column] = ((row + column) % 2 == 0 ? 1 : -1) * this->Minor(row, column).Determinant();
-      }return result;
+      Matrix result(number_of_rows, number_of_columns);
+      vector<thread> threads;
+
+      for(unsigned int row = 0; row < number_of_rows; row++){
+         for(unsigned int column = 0; column < number_of_columns; column++){
+            threads.emplace_back( thread( [this, &result, column, row](){
+               result.matrix[row][column] = ((row + column) % 2 == 0 ? 1 : -1) * this->Minor(row, column).Determinant();
+            } ) );
+         }
+      }
+      
+      for (thread& thr : threads)
+         thr.join();
+      
+      return result;
    }
-   // посчитать обратную матрицу
+   // посчитать обратную матрицу (multithreaded)
    Matrix Inverse() const{
-      if(!(this->IsSquare()) || !(this->Determinant()))
+      if(!(IsSquare()) || !(Determinant()))
          throw invalid_argument("\n ERROR: non-square or singular matrix has no inverse matrix \n");
       else
-         return ( this->Linear().Transponed() * (1 / this->Determinant()) );
+         return ( Linear().Transponed() * (1 / Determinant()) );
    }
    // создать еденичную матрицу заданного размера
    static Matrix<T> identityMatrix(unsigned int num){
-      Matrix<T> result(num, num, 0);
+      Matrix<T> result(num, num);
       for(unsigned int row = 0; row < num; row++){
             for(unsigned int column = 0; column < num; column++)
                result.matrix[row][column] = (row == column ? 1 : 0);
@@ -294,7 +265,7 @@ Matrix<T> Matrix<T>::operator * (const Matrix& other) const
       vector<thread> threads;
 
       for (unsigned int row = 0; row < result.number_of_rows; row++){
-			threads.push_back(thread([this, &result, &other, row](){
+			threads.emplace_back(thread([this, &result, &other, row](){
 				for (unsigned int column = 0; column < result.number_of_columns; column++){
 					result.matrix[row][column] = 0;
 					for (unsigned int count = 0; count < result.number_of_columns; count++){
@@ -318,7 +289,7 @@ Matrix<T> Matrix<T>::operator * (const double number) const
    vector<thread> threads;
 
    for(unsigned int row = 0; row < result.number_of_rows; row++){
-		threads.push_back(thread([this, &result, number, row](){
+		threads.emplace_back(thread([this, &result, number, row](){
 			for(unsigned int column = 0; column < result.number_of_columns; column++){
 				result.matrix[row][column] = matrix[row][column] * number;
 			}
@@ -341,7 +312,7 @@ Matrix<T> Matrix<T>::operator + (const Matrix<T>& other) const
       vector<thread> threads;
 
       for(unsigned int row = 0; row < result.number_of_rows; row++){
-			threads.push_back(thread([this, &result, &other, row](){
+			threads.emplace_back(thread([this, &result, &other, row](){
 				for(unsigned int column = 0; column < result.number_of_columns; column++){
 					result.matrix[row][column] = matrix[row][column] + other.matrix[row][column];
 				}
@@ -365,7 +336,7 @@ Matrix<T> Matrix<T>::operator - (const Matrix& other) const
       vector<thread> threads;
 
       for(unsigned int row = 0; row < result.number_of_rows; row++){
-			threads.push_back(thread([this, &result, &other, row](){
+			threads.emplace_back(thread([this, &result, &other, row](){
 				for(unsigned int column = 0; column < result.number_of_columns; column++){
 					result.matrix[row][column] = matrix[row][column] - other.matrix[row][column];
 				}
@@ -467,10 +438,13 @@ istream& operator >> (istream &in, Matrix<T>& result){
    result.Assign(in);
    return in;
 }
-// !матрица
+// !матрица (multithreaded)
 template<typename T>
 Matrix<T> Matrix<T>::operator ! () const{
-   return this->Inverse();
+   if(!(IsSquare()) || !(Determinant()))
+      throw invalid_argument("\n ERROR: non-square or singular matrix has no inverse matrix \n");
+   else
+      return ( Linear().Transponed() * (1 / Determinant()) );
 }
 
 #endif

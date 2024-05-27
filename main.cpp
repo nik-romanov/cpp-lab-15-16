@@ -78,7 +78,48 @@ int main(){
      << "\n USED MATRIXES: \n\n" << "cmatrix1 \n" << cmatrix1 << "cmatrix2 \n" << cmatrix2
      << "fmatrix1 \n" << fmatrix1 << "fmatrix2 \n" << fmatrix2 << "fmatrix3 \n" << fmatrix3;
   fout.close();
+
+4 8 75 9
+4 12 5 0 
+64 5 7 2
+2 4 2 4
+
+4 8 45 2
+4 5 5 0 
+31 5 7 2
+2 4 1 0
+
+1 2
+3 2
+
+12 3
+3 7
+
   #endif
   
+  using namespace std;
+  Matrix<double> m1(4, 4), m2(4, 4);
+  cin >> m1 >> m2;
+  cout << m1 << m2;
+
+  // auto start1 = chrono::high_resolution_clock::now();
+  // cout << setprecision(5) << m1.Determinant_OldSchool() << endl << m2.Determinant_OldSchool() << endl;
+  // auto stop1 = chrono::high_resolution_clock::now();
+
+  // chrono::duration<float> time1 = stop1 - start1;
+  // cout << "time1: " << time1.count() << '\n';
+
+
+  auto start2 = chrono::high_resolution_clock::now();
+  cout << setprecision(5) << m1.Linear() << endl << m2.Linear() << endl;
+  auto stop2 = chrono::high_resolution_clock::now();
+
+  chrono::duration<float> time2 = stop2 - start2;
+  cout << "time2: " << time2.count() << '\n';
+
+
+
+
+
   return 0;
 } 
