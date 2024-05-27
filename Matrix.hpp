@@ -250,35 +250,54 @@ public:
    Matrix operator ! () const;
 
 };
-// матрица * матрица
+// матрица * матрица (multithreaded)
 template<typename T>
 Matrix<T> Matrix<T>::operator * (const Matrix& other) const
 {
    if(this->number_of_columns != other.number_of_rows){ // необходимое условие для перемножения матриц
       throw invalid_argument("\n ERROR: Matrix are not compatible (cannot multiply) \n");
    }else{
-      Matrix result(this->number_of_rows, other.number_of_columns, T());
-      for(unsigned int row = 0; row < result.number_of_rows; row++){
-         for(unsigned int column = 0; column < result.number_of_columns; column++){
-            T sum = T();
-            for(unsigned int count = 0; count < this->number_of_columns; count++)
-               sum += this->matrix[row][count] * other.matrix[count][column];
-            result.matrix[row][column] = sum;
-         }
-      }return result;
+      Matrix result(number_of_rows, number_of_columns, T());
+      vector<thread> threads;
+
+      for (unsigned int row = 0; row < result.number_of_rows; row++){
+			threads.push_back(thread([this, &result, &other, row](){
+				for (unsigned int column = 0; column < result.number_of_columns; column++){
+					result.matrix[row][column] = 0;
+					for (unsigned int count = 0; count < result.number_of_columns; count++){
+						result.matrix[row][column] += matrix[row][count] * other.matrix[count][column];
+					}
+				}
+			}));
+		}
+	
+		for (thread& thread : threads)
+			thread.join();
+
+		return result;
    }
 }
-// матрица * скаляр
+// матрица * скаляр (multithreaded)
 template<typename T>
-Matrix<T> Matrix<T>::operator * (double number) const
+Matrix<T> Matrix<T>::operator * (const double number) const
 {
-   Matrix result(this->number_of_rows, this->number_of_columns, T());
+   Matrix result(number_of_rows, number_of_columns, T());
+   vector<thread> threads;
+
    for(unsigned int row = 0; row < result.number_of_rows; row++){
-      for(unsigned int column = 0; column < result.number_of_columns; column++)
-         result.matrix[row][column] = this->matrix[row][column] * number;
-   }return result;
+		threads.push_back(thread([this, &result, number, row](){
+			for(unsigned int column = 0; column < result.number_of_columns; column++){
+				result.matrix[row][column] = matrix[row][column] * number;
+			}
+		}));
+	}
+	
+	for (thread& thread : threads)
+		thread.join();
+
+	return result;
 }
-// матрица + матрица
+// матрица + матрица (multithreaded)
 template<typename T>
 Matrix<T> Matrix<T>::operator + (const Matrix<T>& other) const
 {
@@ -302,7 +321,7 @@ Matrix<T> Matrix<T>::operator + (const Matrix<T>& other) const
 		return result;
    }
 }
-// матрица - матрица
+// матрица - матрица (multithreaded)
 template<typename T>
 Matrix<T> Matrix<T>::operator - (const Matrix& other) const
 {
