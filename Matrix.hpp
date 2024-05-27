@@ -173,25 +173,48 @@ public:
       return result;
    }
 #endif
-   // вычислить детерминант
+   // вычислить детерминант (multihreaded)
    double Determinant() const{
+      if (!(IsSquare())){
+         throw invalid_argument("\n ERROR: non-square matrix has no determinant \n");
+      }if (number_of_columns == 1)
+         return matrix[0][0];
+
+      double result = '\0';
+      vector<thread> threads;
+
+      for (unsigned int column = 0; column < number_of_columns; column++){
+         threads.push_back( thread( [this, &result, column](){
+            result += ( (column % 2 == 0) ? 1 : -1) * matrix[0][column] * this->Minor(0, column).Determinant(); 
+         } ) );
+      }
+
+      for (thread& thr : threads)
+         thr.join();
+
+      return result;
+   } 
+   
+   double Determinant_OldSchool() const{
       if(!(this->IsSquare())){
          throw invalid_argument("\n ERROR: non-square matrix has no determinant \n");
       }if(this->number_of_columns == 1)
          return this->matrix[0][0];
-      T result = T();
-      for(unsigned int column = 0; column < this->number_of_columns; column++){
-         result += ( (column % 2 == 0) ? 1 : -1) * this->matrix[0][column] * this->Minor(0, column).Determinant();
+
+      double result = 0;
+
+      for (unsigned int column = 0; column < this->number_of_columns; column++){
+         result += ( (column % 2 == 0) ? 1 : -1) * this->matrix[0][column] * this->Minor(0, column).Determinant0();
       }return result;
    }
    // вычислить минор 
    Matrix<T> Minor(unsigned int row_current, unsigned int column_current) const{
-      Matrix result(this->number_of_rows - 1, this->number_of_columns - 1, 0);
-      for(unsigned int row = 0; row < this->number_of_rows; row++){
+      Matrix result(number_of_rows - 1, number_of_columns - 1, T());
+      for(unsigned int row = 0; row < number_of_rows; row++){
             if(row == row_current) continue;
-            for(unsigned int column = 0; column < this->number_of_columns; column++){
+            for(unsigned int column = 0; column < number_of_columns; column++){
                 if(column == column_current) continue;
-                result.matrix[(row > row_current) ? (row - 1) : row][(column > column_current) ? (column - 1) : column] = this->matrix[row][column];
+                result.matrix[(row > row_current) ? (row - 1) : row][(column > column_current) ? (column - 1) : column] = matrix[row][column];
             }
       }return result;
    }
