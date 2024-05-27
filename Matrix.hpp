@@ -6,6 +6,12 @@
 #include <cmath>
 #include <stdexcept>
 
+#include <vector>
+#include <thread>
+#include <future>
+
+using namespace std;
+
 template<typename T> class Matrix;  // почему без этих двух строчек пре-объявления не работает переопределение <<
 template<typename T> std::ostream& operator << (std::ostream&, const Matrix<T>&);
 template<typename T> std::istream& operator >> (std::istream&, Matrix<T>&);
@@ -276,14 +282,24 @@ Matrix<T> Matrix<T>::operator * (double number) const
 template<typename T>
 Matrix<T> Matrix<T>::operator + (const Matrix<T>& other) const
 {
-   if(this->number_of_rows != other.number_of_rows or this->number_of_columns != other.number_of_columns){
+   if(number_of_rows != other.number_of_rows or number_of_columns != other.number_of_columns){
       throw invalid_argument("\n ERROR: Matrix are not compatible (cannot add) \n");
    }else{
-      Matrix result(this->number_of_rows, this->number_of_columns, T());
+      Matrix result(number_of_rows, number_of_columns, T());
+      vector<thread> threads;
+
       for(unsigned int row = 0; row < result.number_of_rows; row++){
-         for(unsigned int column = 0; column < result.number_of_columns; column++)
-         result.matrix[row][column] = this->matrix[row][column] + other.matrix[row][column];
-      }return result;
+			threads.push_back(thread([this, &result, &other, row](){
+				for(unsigned int column = 0; column < result.number_of_columns; column++){
+					result.matrix[row][column] = matrix[row][column] + other.matrix[row][column];
+				}
+			}));
+		}
+	
+		for (thread& thread : threads)
+			thread.join();
+
+		return result;
    }
 }
 // матрица - матрица
