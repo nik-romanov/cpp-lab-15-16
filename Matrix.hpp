@@ -195,13 +195,23 @@ public:
             }
       }return result;
    }
-  // транспонировать
+  // транспонировать (multithreaded)
    Matrix<T> Transponed() const{
-      Matrix result(this->number_of_rows, this->number_of_columns, 0);
-      for(unsigned int row = 0; row < this->number_of_rows; row++){
-         for(unsigned int column = 0; column < this->number_of_columns; column++)
-            result.matrix[row][column] = this->matrix[column][row];
-      }return result;
+      Matrix result(number_of_columns, number_of_rows, T());
+      vector<thread> threads;
+
+      for(unsigned int row = 0; row < number_of_rows; row++){
+         threads.push_back(thread([this, &result, row](){
+            for(unsigned int column = 0; column < number_of_columns; column++){
+               result.matrix[row][column] = matrix[column][row];
+            }
+         }));
+      }
+         
+      for(thread& thr : threads)
+         thr.join();
+      
+      return result;
    }
    Matrix<T> Linear() const{
       Matrix result(this->number_of_rows, this->number_of_columns, 0);
@@ -271,8 +281,8 @@ Matrix<T> Matrix<T>::operator * (const Matrix& other) const
 			}));
 		}
 	
-		for (thread& thread : threads)
-			thread.join();
+		for (thread& thr : threads)
+			thr.join();
 
 		return result;
    }
@@ -292,8 +302,8 @@ Matrix<T> Matrix<T>::operator * (const double number) const
 		}));
 	}
 	
-	for (thread& thread : threads)
-		thread.join();
+	for (thread& thr : threads)
+		thr.join();
 
 	return result;
 }
@@ -315,8 +325,8 @@ Matrix<T> Matrix<T>::operator + (const Matrix<T>& other) const
 			}));
 		}
 	
-		for (thread& thread : threads)
-			thread.join();
+		for (thread& thr : threads)
+			thr.join();
 
 		return result;
    }
@@ -339,8 +349,8 @@ Matrix<T> Matrix<T>::operator - (const Matrix& other) const
 			}));
 		}
 	
-		for (thread& thread : threads)
-			thread.join();
+		for (thread& thr : threads)
+			thr.join();
 
 		return result;
    }
