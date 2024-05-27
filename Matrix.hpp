@@ -261,20 +261,18 @@ public:
 // матрица * матрица (multithreaded)
 template<typename T>
 Matrix<T> Matrix<T>::operator * (const Matrix& other) const
-{
-   if(this->number_of_columns != other.number_of_rows){ // необходимое условие для перемножения матриц
+{ 
+   if(other.number_of_rows != this->number_of_columns){ // необходимое условие для перемножения матриц
       throw invalid_argument("\n ERROR: Matrix are not compatible (cannot multiply) \n");
    }else{
-      Matrix result(number_of_rows, number_of_columns, T());
+      Matrix result(number_of_rows, other.number_of_columns);
       vector<thread> threads;
 
       for (unsigned int row = 0; row < result.number_of_rows; row++){
 			threads.emplace_back(thread([this, &result, &other, row](){
 				for (unsigned int column = 0; column < result.number_of_columns; column++){
-					result.matrix[row][column] = 0;
-					for (unsigned int count = 0; count < result.number_of_columns; count++){
-						result.matrix[row][column] += matrix[row][count] * other.matrix[count][column];
-					}
+					for (unsigned int index = 0; index < number_of_columns; index++)
+						   result.matrix[row][column] += matrix[row][index] * other.matrix[index][column];
 				}
 			}));
 		}
@@ -287,7 +285,29 @@ Matrix<T> Matrix<T>::operator * (const Matrix& other) const
 }
 template<typename T>
 Matrix<T> Matrix<T>::asyncMultiply(const Matrix& other, unsigned int block_size) const{
+   if (other.number_of_rows != number_of_columns)
+      throw invalid_argument("\n ERROR: Matrix are not compatible (cannot multiply) \n");
 
+   Matrix result(number_of_rows, other.number_of_columns);
+	vector<future<void>> futures;
+
+	for (unsigned int row = 0; row < number_of_rows; row += block_size){
+		for (unsigned int column = 0; column < other.number_of_columns; column += block_size){
+			futures.push_back( async( launch::async, [&, row, column](){
+				for (unsigned int row_ = row; row_ < min(row + block_size, number_of_rows); row_++){
+					for (unsigned int column_ = column; column_ < min(column + block_size, other.number_of_columns); column_++){
+                  for (unsigned int index = 0; index < number_of_columns; index++)
+						   result.matrix[row_][column_] += matrix[row_][index] * other.matrix[index][column_];
+               }
+				}
+			} ) );
+		}
+	}
+
+	for (future<void>& f : futures)
+		f.get();
+	
+   return result;
 }
 // матрица * скаляр (multithreaded)
 template<typename T>
@@ -311,7 +331,24 @@ Matrix<T> Matrix<T>::operator * (double number) const
 }
 template<typename T>
 Matrix<T> Matrix<T>::asyncMultiply(double number, unsigned int block_size) const{
+	Matrix result(number_of_rows, number_of_columns);
+	vector<future<void>> futures;
 
+	for (unsigned int row = 0; row < number_of_rows; row += block_size){
+		for (unsigned int column = 0; column < number_of_columns; column += block_size){
+			futures.push_back( async( launch::async, [&, row, column, number](){
+				for (unsigned int row_ = row; row_ < min(row + block_size, this->number_of_rows); row_++){
+					for (unsigned int column_ = column; column_ < min(column + block_size, this->number_of_columns); column_++)
+						result.matrix[row_][column_] = this->matrix[row_][column_] * number;
+				}
+			} ) );
+		}
+	}
+
+	for (future<void>& f : futures)
+		f.get();
+	
+   return result;
 }
 // матрица + матрица (multithreaded)
 template<typename T>
