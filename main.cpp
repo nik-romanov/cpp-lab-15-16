@@ -1,4 +1,5 @@
 #include "Matrix.hpp"
+#include <random>
 
 int main(){
    
@@ -79,47 +80,145 @@ int main(){
      << "fmatrix1 \n" << fmatrix1 << "fmatrix2 \n" << fmatrix2 << "fmatrix3 \n" << fmatrix3;
   fout.close();
 
-4 8 75 9
-4 12 5 0 
-64 5 7 2
-2 4 2 4
-
-4 8 45 2
-4 5 5 0 
-31 5 7 2
-2 4 1 0
-
-1 2
-3 2
-
-12 3
-3 7
-
-  #endif
-  
-  using namespace std;
-  Matrix<double> m1(4, 4), m2(4, 4);
-  cin >> m1 >> m2;
-  cout << m1 << m2;
-
-  // auto start1 = chrono::high_resolution_clock::now();
-  // cout << setprecision(5) << m1.Determinant_OldSchool() << endl << m2.Determinant_OldSchool() << endl;
-  // auto stop1 = chrono::high_resolution_clock::now();
-
-  // chrono::duration<float> time1 = stop1 - start1;
-  // cout << "time1: " << time1.count() << '\n';
-
-
-  auto start2 = chrono::high_resolution_clock::now();
-  cout << setprecision(5) << m1.Linear() << endl << m2.Linear() << endl;
-  auto stop2 = chrono::high_resolution_clock::now();
-
-  chrono::duration<float> time2 = stop2 - start2;
-  cout << "time2: " << time2.count() << '\n';
-
-
-
-
-
   return 0;
+#endif
+
+#if 1
+  typedef unsigned int ui;
+
+  random_device rd;
+	mt19937 gen(rd());
+	uniform_int_distribution<int> dist(0, 100);
+
+	//16.1
+	ui blocks = 1;
+	
+  /*
+	for (ui num = 50; num <= 1000; num += 50){
+    Matrix<int> A(num, num), B(num, num);
+    for (ui i = 0; i < num; ++i){
+			for (ui j = 0; j < num; ++j){
+				A.matrix[i][j] = dist(gen); //TODO: rd -> gen
+        B.matrix[i][j] = dist(gen); //TODO: rd -> gen
+      }
+		}
+
+		auto start = chrono::high_resolution_clock::now();
+		Matrix<int> result = A.asyncAdd(B, blocks);
+		auto stop = chrono::high_resolution_clock::now();
+
+		chrono::duration<double> duration = stop - start; //chrono::duration_cast<chrono::milliseconds>(stop - start);
+		//cout << " Size: " << num << " Addition time: " << duration.count() * 1000 << " ms\n";
+    cout << duration.count() * 1000 << endl;
+		blocks += 25;
+	}
+  */
+  /*
+	for (ui num = 50; num <= 1000; num += 50){
+    Matrix<int> A(num, num), B(num, num);
+    for (ui i = 0; i < num; ++i){
+			for (ui j = 0; j < num; ++j){
+				A.matrix[i][j] = dist(gen); //TODO: rd -> gen
+        B.matrix[i][j] = dist(gen); //TODO: rd -> gen
+      }
+		}
+
+		auto start = chrono::high_resolution_clock::now();
+		Matrix<int> result = A.asyncSubtract(B, blocks);
+		auto stop = chrono::high_resolution_clock::now();
+
+    chrono::duration<double> duration = stop - start; //chrono::duration_cast<chrono::milliseconds>(stop - start);
+		//cout << " Size: " << num << " Substraction time: " << duration.count() * 1000 << " ms\n";
+    cout << duration.count() * 1000 << endl;
+		blocks += 25;
+	}
+  */
+  /*
+  for (ui num = 50; num <= 1000; num += 50){
+		Matrix<int> A(num, num);
+    for (ui i = 0; i < num; ++i){
+			for (ui j = 0; j < num; ++j)
+				A.matrix[i][j] = dist(gen);
+		}
+
+		auto start = chrono::high_resolution_clock::now();
+		Matrix<int> result = A.asyncMultiply(3, blocks);
+		auto stop = chrono::high_resolution_clock::now();
+
+		chrono::duration<double> duration = stop - start; //chrono::duration_cast<chrono::milliseconds>(stop - start);
+		//cout << " Size: " << num << " Scalar multiplication time: " << duration.count() * 1000 << " ms\n";
+    cout << duration.count() * 1000 << endl;
+		blocks += 25;
+		}
+    */
+  /*
+	for (ui num = 50; num <= 1000; num += 50){
+		Matrix<int> A(num, num), B(num, num);
+    for (ui i = 0; i < num; ++i){
+			for (ui j = 0; j < num; ++j){
+				A.matrix[i][j] = dist(gen);
+        B.matrix[i][j] = dist(gen);
+      }
+		}
+
+		auto start = chrono::high_resolution_clock::now();
+		Matrix<int> result = A.asyncMultiply(B, blocks);
+		auto stop = chrono::high_resolution_clock::now();
+
+    chrono::duration<double> duration = stop - start; //chrono::duration_cast<chrono::milliseconds>(stop - start);
+		//cout << " Size: " << num << " Multiplication time: " << duration.count() * 1000 << " ms\n";
+    cout << duration.count() * 1000 << endl;
+		blocks += 25;
+	}
+  */
+	/*
+  for (ui num = 8; num <= 8; num += 1){
+		Matrix<double> A(num, num);
+    for (ui i = 0; i < num; ++i){
+			for (ui j = 0; j < num; ++j)
+					A.matrix[i][j] = dist(gen);
+		}
+
+		auto start = chrono::high_resolution_clock::now();
+		Matrix<double> result = A.asyncInverse(blocks);
+		auto stop = chrono::high_resolution_clock::now();
+
+		// auto duration = chrono::duration_cast<chrono::milliseconds>(stop - start);
+		// cout << " Size: " << num << " Inverse matrix calculation time: " << duration.count() << " ms\n";
+
+    chrono::duration<double> duration = stop - start; //chrono::duration_cast<chrono::milliseconds>(stop - start);
+    //cout << " Size: " << num << " Inverse matrix calculation time: " << duration.count() * 1000 << " ms\n";
+    cout << duration.count() * 1000 << endl;
+    blocks += 1;
+		}
+  */
+
+  ///*
+  blocks = 1000;
+  Matrix<long> A(1000, 1000), B(1000, 1000), result(1000, 1000);
+  
+  for (ui i = 0; i < 1000; ++i){
+		for (ui j = 0; j < 1000; ++j){
+			A.matrix[i][j] = dist(gen); 
+      B.matrix[i][j] = dist(gen); 
+    }
+	}
+
+	auto start = chrono::high_resolution_clock::now();
+	result = A.asyncMultiply(B, blocks);
+	auto stop = chrono::high_resolution_clock::now();
+
+  chrono::duration<double> duration = stop - start;
+	cout << " asyncMultiply time: " << duration.count() * 1000 << " ms\n";
+  
+	start = chrono::high_resolution_clock::now();
+	result = A * B;
+	stop = chrono::high_resolution_clock::now();
+
+  duration = stop - start;
+	cout << " operator * time: " << duration.count() * 1000 << " ms\n";
+  //*/
+  return 0;
+
+#endif
 } 

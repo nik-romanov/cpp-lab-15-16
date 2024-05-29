@@ -19,7 +19,7 @@ using namespace std;
 template<typename T>
 class Matrix
 {
-private:
+public:
    unsigned int number_of_rows, number_of_columns;
    T **matrix;
 
@@ -257,7 +257,6 @@ public:
    }
    Matrix<T> asyncLinear(unsigned int block_size) const {
       Matrix result(number_of_rows, number_of_columns);
-      //vector<future<Matrix<T>>> futures;
       vector<future<void>> futures;
 
       for (unsigned int row = 0; row < number_of_rows; row += block_size){
@@ -328,7 +327,26 @@ public:
    Matrix operator ! () const;
 
 };
+// матрица * матрица
+template<typename T>
+ Matrix<T> Matrix<T>::operator * (const Matrix& other) const
+ {
+    if(this->number_of_columns != other.number_of_rows){ // необходимое условие для перемножения матриц
+       throw invalid_argument("\n ERROR: Matrix are not compatible (cannot multiply) \n");
+    }else{
+       Matrix result(this->number_of_rows, other.number_of_columns, T());
+       for(unsigned int row = 0; row < result.number_of_rows; row++){
+          for(unsigned int column = 0; column < result.number_of_columns; column++){
+             T sum = T();
+             for(unsigned int count = 0; count < this->number_of_columns; count++)
+                sum += this->matrix[row][count] * other.matrix[count][column];
+             result.matrix[row][column] = sum;
+          }
+       }return result;
+    }
+ }
 // матрица * матрица (multithreaded)
+/*
 template<typename T>
 Matrix<T> Matrix<T>::operator * (const Matrix& other) const
 { 
@@ -353,6 +371,7 @@ Matrix<T> Matrix<T>::operator * (const Matrix& other) const
 		return result;
    }
 }
+*/
 template<typename T>
 Matrix<T> Matrix<T>::asyncMultiply(const Matrix& other, unsigned int block_size) const{
    if (other.number_of_rows != number_of_columns)
